@@ -1,5 +1,6 @@
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, PutCommand } from "@aws-sdk/lib-dynamodb";
+import bcrypt from "bcryptjs";
 import dotenv from "dotenv";
 import { ZodError } from "zod";
 import { RegisterSchema } from "../../validations/RegisterSchema";
@@ -15,6 +16,9 @@ export const handler = async (event: any) => {
     RegisterSchema.parse(body);
     const userId = crypto.randomUUID();
     const userData = await findUserByEmail(client, body?.email);
+    const hashedPwd = await bcrypt.hash(body?.password, 10);
+    body!.password = hashedPwd;
+    console.log(body);
     if (!!userData?.Items?.length) {
       return {
         statusCode: 409,
