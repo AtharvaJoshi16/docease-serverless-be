@@ -2,6 +2,7 @@ import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, PutCommand } from "@aws-sdk/lib-dynamodb";
 import bcrypt from "bcryptjs";
 import dotenv from "dotenv";
+import { parse } from "lambda-multipart-parser";
 import { ZodError } from "zod";
 import { RegisterSchema } from "../../validations/RegisterSchema";
 import { findUserByEmail } from "../utils/findUserByEmail";
@@ -10,8 +11,7 @@ const client = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(client);
 
 export const handler = async (event: any) => {
-  const body = JSON.parse(event?.body ?? {});
-  console.log(body);
+  const body = await parse(event);
   try {
     RegisterSchema.parse(body);
     const userId = crypto.randomUUID();
