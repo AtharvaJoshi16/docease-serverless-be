@@ -1,11 +1,14 @@
+import * as cdk from "aws-cdk-lib";
 import { Table } from "aws-cdk-lib/aws-dynamodb";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
+import * as s3 from "aws-cdk-lib/aws-s3";
 import { Construct } from "constructs";
 import { join } from "path";
 
-interface LambdaStackProps {
+interface LambdaStackProps extends cdk.StackProps {
   usersTable: Table;
+  s3Bucket: s3.Bucket;
 }
 
 export class LambdaStack extends Construct {
@@ -19,6 +22,8 @@ export class LambdaStack extends Construct {
       handler: "handler",
       environment: {
         AUTH_TABLE: props.usersTable.tableName,
+        BUCKET_NAME: props.s3Bucket.bucketName,
+        REGION: process.env.CDK_DEFAULT_REGION!,
       },
       bundling: {
         // disables Docker fallback
@@ -27,7 +32,7 @@ export class LambdaStack extends Construct {
         externalModules: ["@aws-sdk"],
       },
     });
-
+    props.s3Bucket.grantReadWrite(this.authLambda);
     props.usersTable.grantReadWriteData(this.authLambda);
   }
 }

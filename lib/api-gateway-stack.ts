@@ -12,6 +12,7 @@ export class ApiGatewayStack extends Construct {
     const api = new gateway.LambdaRestApi(this, "AuthApi", {
       handler: props.authLambda,
       proxy: false,
+      binaryMediaTypes: ["multipart/form-data"],
     });
 
     const auth = api.root.addResource("auth");
