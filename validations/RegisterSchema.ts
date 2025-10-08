@@ -19,6 +19,7 @@ export const RegisterSchema = z.object({
     .refine((val) => /[!@#$%^&*(),.?":{}|<>]/.test(val), {
       message: messages.password.special,
     }),
+  files: z.array(z.any()),
 });
 
 export type RegisterSchema = z.infer<typeof RegisterSchema>;

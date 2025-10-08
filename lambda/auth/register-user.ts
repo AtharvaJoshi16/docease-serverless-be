@@ -5,7 +5,6 @@ import bcrypt from "bcryptjs";
 import dotenv from "dotenv";
 import { parse } from "lambda-multipart-parser";
 import { ZodError } from "zod";
-import { RegisterSchema } from "../../validations/RegisterSchema";
 import { findUserByEmail } from "../utils/findUserByEmail";
 import { getFileExtension } from "../utils/utils";
 dotenv.config();
@@ -16,16 +15,26 @@ const s3 = new S3Client({ region: process.env.REGION });
 
 export const handler = async (event: any) => {
   try {
-    const body = await parse(event);
-    RegisterSchema.parse(body);
-    console.log(body);
+    const decodedBody = Buffer.from(event.body, "base64").toString("utf8");
+    let body = await parse({
+      ...event,
+      body: decodedBody,
+      isBase64Encoded: false,
+      headers: {
+        "content-type":
+          event.headers["content-type"] || event.headers["Content-Type"],
+      },
+    });
+    console.log("Body 29", body);
+    // RegisterSchema.parse(body);
     const userId = crypto.randomUUID();
     const userData = await findUserByEmail(client, body?.email);
     const hashedPwd = await bcrypt.hash(body?.password, 10);
-    const file = body.files?.[0];
-
+    console.log("Hashed 34", hashedPwd);
+    const file = body?.files?.[0];
+    console.log(file);
     body!.password = hashedPwd;
-    console.log(body);
+    console.log("Body 36", body);
 
     if (!!userData?.Items?.length) {
       return {
@@ -35,6 +44,7 @@ export const handler = async (event: any) => {
         }),
       };
     }
+    console.log("Above profile image key");
     const profileImageKey = `de-users/${userId}/profile_image.${getFileExtension(
       file.filename
     )}`;
