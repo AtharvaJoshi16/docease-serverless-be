@@ -1,7 +1,6 @@
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { DynamoDBDocumentClient, PutCommand } from "@aws-sdk/lib-dynamodb";
-import bcrypt from "bcryptjs";
 import dotenv from "dotenv";
 import { parse } from "lambda-multipart-parser";
 import { ZodError } from "zod";
@@ -25,15 +24,13 @@ export const handler = async (event: any) => {
           event.headers["content-type"] || event.headers["Content-Type"],
       },
     });
-    console.log("Body 29", body);
     // RegisterSchema.parse(body);
     const userId = crypto.randomUUID();
     const userData = await findUserByEmail(client, body?.email);
-    const hashedPwd = await bcrypt.hash(body?.password, 10);
-    console.log("Hashed 34", hashedPwd);
+    // const hashedPwd = bcrypt.hashSync(body?.password, bcrypt.genSaltSync(10));
+    // console.log("Hashed 34", hashedPwd);
     const file = body?.files?.[0];
     console.log(file);
-    body!.password = hashedPwd;
     console.log("Body 36", body);
 
     if (!!userData?.Items?.length) {
@@ -44,11 +41,9 @@ export const handler = async (event: any) => {
         }),
       };
     }
-    console.log("Above profile image key");
     const profileImageKey = `de-users/${userId}/profile_image.${getFileExtension(
       file.filename
     )}`;
-    console.log(profileImageKey, file.contentType);
     if (!!file) {
       await s3.send(
         new PutObjectCommand({
@@ -63,7 +58,13 @@ export const handler = async (event: any) => {
     await docClient.send(
       new PutCommand({
         TableName: process.env.AUTH_TABLE,
-        Item: { ...body, userId, profileImageKey },
+        Item: {
+          email: body?.email,
+          firstName: body?.firstName,
+          lastName: body?.lastName,
+          password: body?.password,
+          userId,
+        },
       })
     );
     return {
