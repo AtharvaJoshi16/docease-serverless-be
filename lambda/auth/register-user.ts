@@ -24,7 +24,6 @@ export const handler = async (event: any) => {
           event.headers["content-type"] || event.headers["Content-Type"],
       },
     });
-    // RegisterSchema.parse(body);
     const userId = crypto.randomUUID();
     const userData = await findUserByEmail(client, body?.email);
     // const hashedPwd = bcrypt.hashSync(body?.password, bcrypt.genSaltSync(10));
@@ -63,6 +62,7 @@ export const handler = async (event: any) => {
           firstName: body?.firstName,
           lastName: body?.lastName,
           password: body?.password,
+          profileImageKey,
           userId,
         },
       })

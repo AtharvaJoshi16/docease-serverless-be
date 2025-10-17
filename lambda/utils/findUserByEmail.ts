@@ -1,7 +1,8 @@
-import { DynamoDBClient, QueryCommand } from "@aws-sdk/client-dynamodb";
+import { QueryCommand } from "@aws-sdk/client-dynamodb";
+import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 
 export const findUserByEmail = async (
-  client: DynamoDBClient,
+  client: DynamoDBDocumentClient,
   email: string
 ) => {
   const cmd = new QueryCommand({

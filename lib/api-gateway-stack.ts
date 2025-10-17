@@ -18,5 +18,7 @@ export class ApiGatewayStack extends Construct {
     const auth = api.root.addResource("auth");
     const register = auth.addResource("register");
     register.addMethod("POST", new gateway.LambdaIntegration(props.authLambda));
+    const login = auth.addResource("login");
+    login.addMethod("POST", new gateway.LambdaIntegration(props.authLambda));
   }
 }

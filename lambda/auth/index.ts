@@ -1,7 +1,11 @@
+import { handler as loginUser } from "./login-user";
 import { handler as registerUser } from "./register-user";
 const routes: Record<string, Record<string, Function>> = {
   "/auth/register": {
     POST: registerUser,
+  },
+  "/auth/login": {
+    POST: loginUser,
   },
 };
 export const handler = async (event: any) => {

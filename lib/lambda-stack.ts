@@ -24,6 +24,7 @@ export class LambdaStack extends Construct {
         AUTH_TABLE: props.usersTable.tableName,
         BUCKET_NAME: props.s3Bucket.bucketName,
         REGION: process.env.CDK_DEFAULT_REGION!,
+        JWT_SECRET: process.env.JWT_SECRET!,
       },
       bundling: {
         // disables Docker fallback
