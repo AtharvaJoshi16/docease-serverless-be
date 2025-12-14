@@ -1,21 +1,13 @@
-import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
-import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { unmarshall } from "@aws-sdk/util-dynamodb";
-import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
-import { findUserByEmail } from "../utils/findUserByEmail";
-dotenv.config();
-const client = new DynamoDBClient({});
-const docClient = DynamoDBDocumentClient.from(client);
-const s3 = new S3Client({ region: process.env.REGION });
+import { User } from "../../types/User";
+import { findUserByEmail } from "../utils/queries";
+import { getPresignedUrl } from "../utils/utils";
 
 export const handler = async (event: any) => {
   try {
     let body = JSON.parse(event.body);
     let { email, password } = body;
-    const user = (await findUserByEmail(docClient, email))?.Items?.[0];
+    const user: User = (await findUserByEmail(email)) as User;
 
     if (!user) {
       return {
@@ -23,9 +15,7 @@ export const handler = async (event: any) => {
         body: JSON.stringify({ err: `User not found with email ${email}` }),
       };
     }
-    const parsedUser = unmarshall(user);
-    console.log(parsedUser);
-    const isPwdValid = password === parsedUser.password;
+    const isPwdValid = password === user.password;
     if (!isPwdValid) {
       return {
         statusCode: 401,
@@ -33,26 +23,20 @@ export const handler = async (event: any) => {
       };
     }
     let profileImageUrl;
-    if (parsedUser.profileImageKey!) {
-      const command = new GetObjectCommand({
-        Bucket: process.env.BUCKET_NAME!,
-        Key: parsedUser.profileImageKey!,
-      });
-      profileImageUrl = await getSignedUrl(s3, command, {
-        expiresIn: 86400,
-      });
+    if (user?.profileImageKey!) {
+      profileImageUrl = await getPresignedUrl(user.profileImageKey);
     }
-    delete parsedUser?.password;
+    delete user?.password;
     return {
       statusCode: 200,
       body: JSON.stringify({
-        user: parsedUser,
+        user: user,
         profileImage: profileImageUrl,
         token: jwt.sign(
-          { userId: parsedUser.userId, email: parsedUser.email },
+          { userId: user.userId, email: user.email },
           process.env.JWT_SECRET!,
           {
-            expiresIn: "1Day",
+            expiresIn: "24h",
           }
         ),
       }),

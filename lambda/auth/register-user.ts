@@ -1,31 +1,20 @@
-import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
-import { DynamoDBDocumentClient, PutCommand } from "@aws-sdk/lib-dynamodb";
-import dotenv from "dotenv";
+import { APIGatewayProxyEvent } from "aws-lambda";
 import { parse } from "lambda-multipart-parser";
 import { ZodError } from "zod";
-import { findUserByEmail } from "../utils/findUserByEmail";
-import { getFileExtension } from "../utils/utils";
-dotenv.config();
-const client = new DynamoDBClient({});
-const docClient = DynamoDBDocumentClient.from(client);
+import { createUser, findUserByEmail } from "../utils/queries";
+import { addAttachments, getFileExtension } from "../utils/utils";
 
-const s3 = new S3Client({ region: process.env.REGION });
-
-export const handler = async (event: any) => {
+export const handler = async (event: APIGatewayProxyEvent) => {
   try {
-    const decodedBody = Buffer.from(event.body, "base64").toString("utf8");
+    const decodedBody = Buffer.from(event.body!, "base64").toString("utf8");
     let body = await parse({
       ...event,
       body: decodedBody,
       isBase64Encoded: false,
-      headers: {
-        "content-type":
-          event.headers["content-type"] || event.headers["Content-Type"],
-      },
     });
+    console.log(body);
     const userId = crypto.randomUUID();
-    const userData = await findUserByEmail(client, body?.email);
+    const userData = await findUserByEmail(body?.email);
     // const hashedPwd = bcrypt.hashSync(body?.password, bcrypt.genSaltSync(10));
     // console.log("Hashed 34", hashedPwd);
     const file = body?.files?.[0];
@@ -40,33 +29,24 @@ export const handler = async (event: any) => {
         }),
       };
     }
-    const profileImageKey = `de-users/${userId}/profile_image.${getFileExtension(
-      file.filename
-    )}`;
-    if (!!file) {
-      await s3.send(
-        new PutObjectCommand({
-          Bucket: process.env.BUCKET_NAME!,
-          Key: profileImageKey,
-          Body: file.content,
-          ContentType: file.contentType,
-        })
-      );
+
+    const profileImageKey = file
+      ? `users/${userId}/profile_image.${getFileExtension(file.filename)}`
+      : undefined;
+
+    const user = await createUser({
+      userId,
+      email: body?.email,
+      firstName: body?.firstName,
+      lastName: body?.lastName,
+      password: body?.password,
+      profileImageKey: profileImageKey,
+    });
+
+    if (!!file && user.$metadata.httpStatusCode === 200 && profileImageKey) {
+      await addAttachments([{ ...file, key: profileImageKey }]);
     }
 
-    await docClient.send(
-      new PutCommand({
-        TableName: process.env.AUTH_TABLE,
-        Item: {
-          email: body?.email,
-          firstName: body?.firstName,
-          lastName: body?.lastName,
-          password: body?.password,
-          profileImageKey,
-          userId,
-        },
-      })
-    );
     return {
       statusCode: 201,
       body: JSON.stringify({ userId }),
