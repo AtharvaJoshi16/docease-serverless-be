@@ -35,7 +35,7 @@
     "@aws-sdk/util-dynamodb": "^3.911.0",
     "aws-cdk-lib": "^2.215.0",
     "aws-lambda": "^1.0.7",
-    "bcryptjs": "^3.0.2",
+    "bcryptjs": "^3.0.3",
     "constructs": "^10.4.2",
     "dotenv": "^17.2.3",
     "jsonwebtoken": "^9.0.2",

@@ -3,7 +3,7 @@ import { User } from "../../types/User";
 import { DDB } from "./clients";
 
 export const findUserByEmail = async (email: string) => {
-  console.log("Finding user by email:", email, process.env.AUTH_TABLE);
+  console.log("Finding user by email:", email);
   const res = await DDB.send(
     new QueryCommand({
       TableName: process.env.AUTH_TABLE,
@@ -13,7 +13,6 @@ export const findUserByEmail = async (email: string) => {
       ExpressionAttributeValues: { ":email": email },
     })
   );
-
   return res.Items?.[0] ?? null;
 };
 

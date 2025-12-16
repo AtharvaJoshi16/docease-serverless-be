@@ -1,21 +1,21 @@
+import * as bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { User } from "../../types/User";
 import { findUserByEmail } from "../utils/queries";
 import { getPresignedUrl } from "../utils/utils";
-
 export const handler = async (event: any) => {
   try {
     let body = JSON.parse(event.body);
     let { email, password } = body;
-    const user: User = (await findUserByEmail(email)) as User;
-
-    if (!user) {
+    const user = (await findUserByEmail(email)) as User;
+    console.log("User fetched:", user);
+    if (!user?.email) {
       return {
         statusCode: 404,
         body: JSON.stringify({ err: `User not found with email ${email}` }),
       };
     }
-    const isPwdValid = password === user.password;
+    const isPwdValid = await bcrypt.compare(password, user.password!);
     if (!isPwdValid) {
       return {
         statusCode: 401,

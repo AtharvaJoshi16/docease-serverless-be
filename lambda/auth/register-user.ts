@@ -1,4 +1,5 @@
 import { APIGatewayProxyEvent } from "aws-lambda";
+import * as bcrypt from "bcryptjs";
 import { parse } from "lambda-multipart-parser";
 import { ZodError } from "zod";
 import { createUser, findUserByEmail } from "../utils/queries";
@@ -12,16 +13,16 @@ export const handler = async (event: APIGatewayProxyEvent) => {
       body: decodedBody,
       isBase64Encoded: false,
     });
-    console.log(body);
     const userId = crypto.randomUUID();
+    console.log(body?.email);
+
     const userData = await findUserByEmail(body?.email);
-    // const hashedPwd = bcrypt.hashSync(body?.password, bcrypt.genSaltSync(10));
-    // console.log("Hashed 34", hashedPwd);
+    const hashedPwd = await bcrypt.hash(body?.password, 8);
+    console.log(userData);
     const file = body?.files?.[0];
     console.log(file);
-    console.log("Body 36", body);
 
-    if (!!userData?.Items?.length) {
+    if (!!userData?.email) {
       return {
         statusCode: 409,
         body: JSON.stringify({
@@ -39,7 +40,7 @@ export const handler = async (event: APIGatewayProxyEvent) => {
       email: body?.email,
       firstName: body?.firstName,
       lastName: body?.lastName,
-      password: body?.password,
+      password: hashedPwd,
       profileImageKey: profileImageKey,
     });
 
@@ -52,7 +53,7 @@ export const handler = async (event: APIGatewayProxyEvent) => {
       body: JSON.stringify({ userId }),
     };
   } catch (e) {
-    console.log(e);
+    console.log("Error", e);
     if (e instanceof ZodError) {
       return {
         statusCode: 400,
